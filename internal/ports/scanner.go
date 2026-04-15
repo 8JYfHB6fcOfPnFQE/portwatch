@@ -6,60 +6,54 @@ import (
 	"time"
 )
 
-// PortState represents the state of a single open port.
+// PortState represents a single port observed during a scan.
 type PortState struct {
-	Protocol string
-	Port     int
-	Address  string
+	Port  int
+	Proto string
+	State string
 }
 
 // String returns a human-readable representation of the port state.
 func (p PortState) String() string {
-	return fmt.Sprintf("%s://%s:%d", p.Protocol, p.Address, p.Port)
+	return fmt.Sprintf("%s/%d (%s)", p.Proto, p.Port, p.State)
 }
 
-// Scanner scans for open TCP/UDP ports on the local machine.
+// Scanner performs active TCP port scans over a configurable port range.
 type Scanner struct {
+	From    int
+	To      int
 	Timeout time.Duration
-	Ports   []int
 }
 
-// NewScanner creates a Scanner with a default timeout and port range.
-func NewScanner(timeout time.Duration, ports []int) *Scanner {
+// DefaultPortRange is the range scanned when no explicit range is configured.
+const DefaultPortRange = "1-1024"
+
+// NewScanner returns a Scanner with the given port range and a 500 ms dial
+// timeout per port.
+func NewScanner(from, to int) *Scanner {
 	return &Scanner{
-		Timeout: timeout,
-		Ports:   ports,
+		From:    from,
+		To:      to,
+		Timeout: 500 * time.Millisecond,
 	}
 }
 
-// Scan checks each port in the configured list and returns those that are open.
+// Scan iterates over the configured port range and returns every port that
+// accepts a TCP connection.
 func (s *Scanner) Scan() ([]PortState, error) {
 	var open []PortState
-
-	for _, port := range s.Ports {
-		address := fmt.Sprintf("127.0.0.1:%d", port)
-		conn, err := net.DialTimeout("tcp", address, s.Timeout)
+	for port := s.From; port <= s.To; port++ {
+		addr := fmt.Sprintf("127.0.0.1:%d", port)
+		conn, err := net.DialTimeout("tcp", addr, s.Timeout)
 		if err != nil {
-			// Port is closed or unreachable — skip
 			continue
 		}
 		conn.Close()
-
 		open = append(open, PortState{
-			Protocol: "tcp",
-			Port:     port,
-			Address:  "127.0.0.1",
+			Port:  port,
+			Proto: "tcp",
+			State: "LISTEN",
 		})
 	}
-
 	return open, nil
-}
-
-// DefaultPortRange returns a commonly monitored range of ports (1–1024).
-func DefaultPortRange() []int {
-	ports := make([]int, 1024)
-	for i := range ports {
-		ports[i] = i + 1
-	}
-	return ports
 }

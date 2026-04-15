@@ -1,24 +1,29 @@
-// Package ports provides primitives for scanning, filtering, and tracking
-// the state of open network ports on the local host.
+// Package ports provides primitives for discovering, tracking, and filtering
+// open network ports on the local host.
 //
 // # Scanner
 //
-// Scanner performs a TCP/UDP port sweep over a configurable range and returns
-// the set of ports found to be open.
+// Scanner performs active TCP/UDP port scans over a configurable range using
+// net.Dial, suitable for cross-platform use.
+//
+// # ProcReader
+//
+// ProcReader reads listening ports directly from /proc/net/tcp and
+// /proc/net/tcp6 on Linux systems. It is faster than active scanning and
+// does not require elevated privileges beyond read access to /proc.
 //
 // # Filter
 //
-// Filter allows callers to exclude specific ports or protocols from scan
-// results before they are processed further.
+// Filter applies exclusion rules so that well-known or explicitly ignored
+// ports and protocols are suppressed before alerting.
 //
 // # History
 //
-// History compares successive scan results and surfaces the diff — ports that
-// have been opened or closed since the previous scan.
+// History compares successive port snapshots and emits the diff — newly
+// opened ports and recently closed ports — for downstream alerting.
 //
 // # SnapshotStore
 //
-// SnapshotStore persists port state to a JSON file so that the daemon can
-// resume with a known baseline after a restart, avoiding spurious alerts on
-// startup.
+// SnapshotStore persists port snapshots to disk so that portwatch can
+// detect changes across restarts without a false-positive flood on startup.
 package ports
