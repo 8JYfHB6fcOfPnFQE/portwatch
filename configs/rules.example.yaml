@@ -1,0 +1,27 @@
+# portwatch rules example
+# Each rule defines what to do when a matching port is detected.
+
+rules:
+  # Always allow SSH — suppress alerts for port 22/tcp.
+  - port: 22
+    proto: tcp
+    action: allow
+    comment: "SSH access is expected"
+
+  # Alert immediately if anything opens on port 4444 (common RAT port).
+  - port: 4444
+    proto: tcp
+    action: alert
+    comment: "Suspicious port — possible backdoor"
+
+  # Block (alert + log) any UDP activity on port 53 from unexpected processes.
+  - port: 53
+    proto: udp
+    action: alert
+    comment: "DNS — alert if opened by an unexpected process"
+
+  # Allow standard HTTPS.
+  - port: 443
+    proto: tcp
+    action: allow
+    comment: "HTTPS is expected"

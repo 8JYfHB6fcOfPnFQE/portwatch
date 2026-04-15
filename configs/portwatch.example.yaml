@@ -1,0 +1,20 @@
+# portwatch example configuration
+# Copy this file to /etc/portwatch/config.yaml or pass it with --config.
+
+# How often to scan for open ports.
+scan_interval: 30s
+
+# Inclusive port range to monitor.
+port_range:
+  from: 1
+  to: 65535
+
+# Alert output settings.
+output:
+  # "text" prints human-readable lines; "json" emits one JSON object per line.
+  format: text
+  # Omit or leave empty to write to stdout.
+  # file: /var/log/portwatch.log
+
+# Path to the rules file (see configs/rules.example.yaml).
+# rules_file: /etc/portwatch/rules.yaml
