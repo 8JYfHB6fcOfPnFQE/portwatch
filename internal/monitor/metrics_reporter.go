@@ -3,52 +3,64 @@ package monitor
 import (
 	"fmt"
 	"io"
-	"text/tabwriter"
+	"os"
 	"time"
 
 	"github.com/user/portwatch/internal/ports"
 )
 
-// MetricsReporter prints scan metrics summaries to a writer.
+// MetricsReporter periodically prints a summary of scan metrics.
 type MetricsReporter struct {
 	collector *ports.MetricsCollector
 	out       io.Writer
+	stop      chan struct{}
 }
 
-// NewMetricsReporter creates a reporter writing to out.
-func NewMetricsReporter(collector *ports.MetricsCollector, out io.Writer) *MetricsReporter {
-	return &MetricsReporter{collector: collector, out: out}
+// NewMetricsReporter creates a MetricsReporter writing to w (defaults to os.Stdout).
+func NewMetricsReporter(c *ports.MetricsCollector, w io.Writer) *MetricsReporter {
+	if w == nil {
+		w = os.Stdout
+	}
+	return &MetricsReporter{collector: c, out: w, stop: make(chan struct{})}
 }
 
-// PrintSummary writes aggregate stats to the writer.
+// Start begins periodic reporting at the given interval.
+func (r *MetricsReporter) Start(interval time.Duration) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				r.PrintSummary()
+			case <-r.stop:
+				return
+			}
+		}
+	}()
+}
+
+// Stop halts periodic reporting.
+func (r *MetricsReporter) Stop() {
+	close(r.stop)
+}
+
+// PrintSummary writes a one-line metrics summary to the writer.
 func (r *MetricsReporter) PrintSummary() {
 	s := r.collector.Summary()
-	w := tabwriter.NewWriter(r.out, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "=== portwatch scan metrics ===")
-	fmt.Fprintf(w, "Scans completed:\t%d\n", s.Count)
-	fmt.Fprintf(w, "Total ports added:\t%d\n", s.TotalAdded)
-	fmt.Fprintf(w, "Total ports removed:\t%d\n", s.TotalRemoved)
-	fmt.Fprintf(w, "Scan errors:\t%d\n", s.TotalErrors)
-	fmt.Fprintf(w, "Avg scan duration:\t%s\n", roundDuration(s.AvgDuration))
-	w.Flush()
-}
-
-// PrintLatest writes the most recent scan metrics to the writer.
-func (r *MetricsReporter) PrintLatest() {
-	sm, ok := r.collector.Latest()
-	if !ok {
-		fmt.Fprintln(r.out, "no scan data available")
+	if s.Total == 0 {
+		fmt.Fprintln(r.out, "[metrics] no data collected yet")
 		return
 	}
-	w := tabwriter.NewWriter(r.out, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "=== latest scan ===")
-	fmt.Fprintf(w, "Timestamp:\t%s\n", sm.Timestamp.Format(time.RFC3339))
-	fmt.Fprintf(w, "Duration:\t%s\n", roundDuration(sm.ScanDuration))
-	fmt.Fprintf(w, "Ports found:\t%d\n", sm.PortsFound)
-	fmt.Fprintf(w, "Ports added:\t%d\n", sm.PortsAdded)
-	fmt.Fprintf(w, "Ports removed:\t%d\n", sm.PortsRemoved)
-	fmt.Fprintf(w, "Error:\t%v\n", sm.ScanError)
-	w.Flush()
+	fmt.Fprintf(r.out,
+		"[metrics] scans=%d errors=%d avg=%s ports=%d added=%d removed=%d\n",
+		s.Total,
+		s.Errors,
+		roundDuration(s.AvgDuration),
+		s.AvgPorts,
+		s.TotalAdded,
+		s.TotalRemoved,
+	)
 }
 
 func roundDuration(d time.Duration) string {
