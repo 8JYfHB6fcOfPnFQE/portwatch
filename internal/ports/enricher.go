@@ -35,6 +35,7 @@ func NewEnricher(procRoot string) *Enricher {
 }
 
 // Lookup finds the process that owns the given socket inode.
+// Returns an empty ProcessInfo (with PID 0) if no matching process is found.
 func (e *Enricher) Lookup(inode uint64) (ProcessInfo, error) {
 	pids, err := e.listPIDs()
 	if err != nil {
@@ -52,7 +53,7 @@ func (e *Enricher) Lookup(inode uint64) (ProcessInfo, error) {
 func (e *Enricher) listPIDs() ([]int, error) {
 	entries, err := os.ReadDir(e.procRoot)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading proc root %q: %w", e.procRoot, err)
 	}
 	var pids []int
 	for _, entry := range entries {
