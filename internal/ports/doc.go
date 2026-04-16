@@ -1,29 +1,38 @@
-// Package ports provides primitives for discovering, tracking, and filtering
-// open network ports on the local host.
+// Package ports provides primitives for scanning, tracking, and enriching
+// open network port information on the local host.
 //
 // # Scanner
 //
-// Scanner performs active TCP/UDP port scans over a configurable range using
-// net.Dial, suitable for cross-platform use.
-//
-// # ProcReader
-//
-// ProcReader reads listening ports directly from /proc/net/tcp and
-// /proc/net/tcp6 on Linux systems. It is faster than active scanning and
-// does not require elevated privileges beyond read access to /proc.
-//
-// # Filter
-//
-// Filter applies exclusion rules so that well-known or explicitly ignored
-// ports and protocols are suppressed before alerting.
+// NewScanner returns a Scanner that lists currently open TCP/UDP ports within
+// a configurable port range.
 //
 // # History
 //
-// History compares successive port snapshots and emits the diff — newly
-// opened ports and recently closed ports — for downstream alerting.
+// NewHistory tracks successive scans and exposes Diff to surface ports that
+// have opened or closed between two snapshots.
 //
-// # SnapshotStore
+// # Snapshot
 //
-// SnapshotStore persists port snapshots to disk so that portwatch can
-// detect changes across restarts without a false-positive flood on startup.
-package ports
+// NewSnapshotStore persists port state to disk so that portwatch can survive
+// restarts without generating spurious alerts for pre-existing ports.
+//
+// # Baseline
+//
+// NewBaselineStore saves a named reference snapshot that operators capture
+// intentionally. Baseline.Diff compares any subsequent scan against that
+// reference to highlight unexpected additions or removals.
+//
+// # Filter
+//
+// NewFilter applies exclusion rules (by port number or protocol) before
+// results are forwarded to the alerting layer.
+//
+// # Enricher
+//
+// NewEnricher correlates open ports with /proc data to attach process name
+// and PID metadata to each PortState.
+//
+// # RateLimiter
+//
+// NewRateLimiter suppresses repeated alerts for the same port within a
+// configurable cooldown window.
