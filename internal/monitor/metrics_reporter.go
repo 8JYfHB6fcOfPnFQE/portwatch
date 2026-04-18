@@ -63,6 +63,12 @@ func (r *MetricsReporter) PrintSummary() {
 	)
 }
 
+// Reset clears all collected metrics and prints a confirmation message.
+func (r *MetricsReporter) Reset() {
+	r.collector.Reset()
+	fmt.Fprintln(r.out, "[metrics] counters reset")
+}
+
 func roundDuration(d time.Duration) string {
 	if d < time.Millisecond {
 		return fmt.Sprintf("%dµs", d.Microseconds())
