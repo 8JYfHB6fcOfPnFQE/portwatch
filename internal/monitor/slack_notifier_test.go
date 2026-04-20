@@ -14,6 +14,14 @@ func makeSlackEvent() alert.Event {
 	return alert.NewEvent("opened", 9200, "tcp", time.Now())
 }
 
+// newTestServer creates a httptest.Server that responds with the given status code.
+func newTestServer(t *testing.T, status int) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(status)
+	}))
+}
+
 func TestSlackNotifier_PostsJSON(t *testing.T) {
 	var received map[string]string
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -34,9 +42,7 @@ func TestSlackNotifier_PostsJSON(t *testing.T) {
 }
 
 func TestSlackNotifier_ForwardsToNext(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
+	ts := newTestServer(t, http.StatusOK)
 	defer ts.Close()
 
 	forwarded := false
@@ -55,9 +61,7 @@ func TestSlackNotifier_ForwardsToNext(t *testing.T) {
 }
 
 func TestSlackNotifier_BadStatus_ReturnsError(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
+	ts := newTestServer(t, http.StatusInternalServerError)
 	defer ts.Close()
 
 	n := NewSlackNotifier(ts.URL, ts.Client(), nil)
