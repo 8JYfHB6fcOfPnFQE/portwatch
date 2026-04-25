@@ -60,3 +60,13 @@ func (o *OpsNotifier) AvgLatencyMs() float64 {
 	}
 	return float64(o.metrics.TotalMs) / float64(total)
 }
+
+// SuccessRate returns the fraction of send attempts that succeeded as a value
+// in [0, 1]. Returns 0 when no events have been attempted.
+func (o *OpsNotifier) SuccessRate() float64 {
+	total := o.metrics.Sent + o.metrics.Failed
+	if total == 0 {
+		return 0
+	}
+	return float64(o.metrics.Sent) / float64(total)
+}
