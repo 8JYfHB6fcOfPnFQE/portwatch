@@ -47,6 +47,14 @@ func TestEmailConfig_Validate_InvalidPort(t *testing.T) {
 	}
 }
 
+func TestEmailConfig_Validate_PortOutOfRange(t *testing.T) {
+	cfg := validEmailConfig()
+	cfg.Port = 99999
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected error for port out of valid range")
+	}
+}
+
 func TestEmailConfig_Validate_MissingFrom(t *testing.T) {
 	cfg := validEmailConfig()
 	cfg.From = ""
